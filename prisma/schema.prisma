@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEAM_MEMBER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedEvents Event[]       @relation("EventAdmin")
+  memberships EventMember[]
+  photos      Photo[]
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  name      String
+  adminId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  admin    User          @relation("EventAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  members  EventMember[]
+  photos   Photo[]
+  gallery  Gallery?
+
+  @@index([adminId])
+}
+
+model EventMember {
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
+}
+
+model Photo {
+  id               String   @id @default(uuid())
+  eventId          String
+  uploadedById     String
+  filename         String
+  storageUrl       String
+  storagePublicId  String
+  mimeType         String
+  fileSize         Int
+  selected         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  event      Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  galleries  GalleryPhoto[]
+
+  @@index([eventId])
+  @@index([uploadedById])
+  @@index([eventId, selected])
+}
+
+model Gallery {
+  id          String    @id @default(uuid())
+  eventId     String    @unique
+  slug        String    @unique
+  pinHash     String
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  event  Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  photos GalleryPhoto[]
+
+  @@index([slug])
+}
+
+model GalleryPhoto {
+  galleryId String
+  photoId   String
+  createdAt DateTime @default(now())
+
+  gallery Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  photo   Photo   @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([galleryId, photoId])
+  @@index([photoId])
+}
