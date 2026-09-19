@@ -157,11 +157,13 @@ export async function createOrUpdateGallery(
   }
 
   const updated = await prisma.gallery.findUnique({
-    where: { id: gallery!.id },
+    where: { eventId },
     include: { photos: true },
   });
 
-  return toGalleryDto(updated!, updated!.photos.length);
+  if (!updated) throw Errors.notFound();
+
+  return toGalleryDto(updated, updated.photos.length);
 }
 
 export async function publishGallery(eventId: string, adminId: string) {
