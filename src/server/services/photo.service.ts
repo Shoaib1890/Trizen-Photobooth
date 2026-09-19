@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { Errors } from "@/lib/api/errors";
 import { deleteCloudinaryAsset, thumbnailUrl } from "@/lib/cloudinary";
+import { syncGalleryPhotosForEvent } from "@/server/services/gallery.service";
 import type { PhotoDto } from "@/types";
 import { Role } from "@/generated/prisma/client";
 
@@ -98,6 +99,8 @@ export async function updatePhotoSelection(
     },
   });
 
+  await syncGalleryPhotosForEvent(photo.eventId);
+
   return toPhotoDto(updated);
 }
 
@@ -113,6 +116,8 @@ export async function bulkUpdateSelection(
     where: { eventId },
     data: { selected },
   });
+
+  await syncGalleryPhotosForEvent(eventId);
 }
 
 export async function cleanupFailedUpload(publicId: string) {

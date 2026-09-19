@@ -41,6 +41,31 @@ function toGalleryDto(
   };
 }
 
+/** Mirror event photos marked selected into the gallery snapshot (public URL uses this list). */
+export async function syncGalleryPhotosForEvent(eventId: string) {
+  const gallery = await prisma.gallery.findUnique({ where: { eventId } });
+  if (!gallery) return;
+
+  const selectedPhotos = await prisma.photo.findMany({
+    where: { eventId, selected: true },
+    select: { id: true },
+  });
+
+  await prisma.$transaction([
+    prisma.galleryPhoto.deleteMany({ where: { galleryId: gallery.id } }),
+    ...(selectedPhotos.length > 0
+      ? [
+          prisma.galleryPhoto.createMany({
+            data: selectedPhotos.map((photo) => ({
+              galleryId: gallery.id,
+              photoId: photo.id,
+            })),
+          }),
+        ]
+      : []),
+  ]);
+}
+
 export async function getGalleryForAdmin(eventId: string, adminId: string) {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -66,7 +91,7 @@ export async function getGalleryForAdmin(eventId: string, adminId: string) {
   }
 
   return {
-    gallery: toGalleryDto(event.gallery, event.gallery.photos.length),
+    gallery: toGalleryDto(event.gallery, event.photos.length),
     selectedPhotos: event.gallery.photos.map((gp) => gp.photoId),
   };
 }
@@ -128,19 +153,7 @@ export async function createOrUpdateGallery(
       }),
     ]);
   } else {
-    const selectedPhotos = await prisma.photo.findMany({
-      where: { eventId, selected: true },
-    });
-
-    await prisma.$transaction([
-      prisma.galleryPhoto.deleteMany({ where: { galleryId: gallery!.id } }),
-      prisma.galleryPhoto.createMany({
-        data: selectedPhotos.map((photo) => ({
-          galleryId: gallery!.id,
-          photoId: photo.id,
-        })),
-      }),
-    ]);
+    await syncGalleryPhotosForEvent(eventId);
   }
 
   const updated = await prisma.gallery.findUnique({
@@ -169,15 +182,7 @@ export async function publishGallery(eventId: string, adminId: string) {
     throw Errors.badRequest("Select at least one photo before publishing.");
   }
 
-  if (event.gallery.photos.length === 0) {
-    await prisma.galleryPhoto.createMany({
-      data: event.photos.map((photo) => ({
-        galleryId: event.gallery!.id,
-        photoId: photo.id,
-      })),
-      skipDuplicates: true,
-    });
-  }
+  await syncGalleryPhotosForEvent(eventId);
 
   const gallery = await prisma.gallery.update({
     where: { id: event.gallery.id },
