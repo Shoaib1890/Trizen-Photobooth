@@ -1,7 +1,25 @@
 import { prisma } from "@/lib/db/prisma";
 import { Role } from "@/generated/prisma/client";
 
+function assertSafeTestDatabase() {
+  if (process.env.ALLOW_TEST_DB_RESET === "true") return;
+
+  const url = process.env.DATABASE_URL ?? "";
+  const looksLocal =
+    url.includes("localhost") ||
+    url.includes("127.0.0.1") ||
+    /[/_-]test/i.test(url);
+
+  if (!looksLocal) {
+    throw new Error(
+      "Tests refused to wipe DATABASE_URL (looks like a shared/production Neon DB). " +
+        "Use a separate test database or set ALLOW_TEST_DB_RESET=true only when you accept a full reset.",
+    );
+  }
+}
+
 export async function resetDatabase() {
+  assertSafeTestDatabase();
   await prisma.galleryPhoto.deleteMany();
   await prisma.gallery.deleteMany();
   await prisma.photo.deleteMany();
