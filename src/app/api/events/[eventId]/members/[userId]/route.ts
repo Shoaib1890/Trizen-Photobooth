@@ -7,7 +7,7 @@ import {
 } from "@/lib/authorization";
 import { handleApiError, successResponse } from "@/lib/api/response";
 import { removeTeamMember } from "@/server/services/event.service";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 import { Errors } from "@/lib/api/errors";
 
 type Params = { params: Promise<{ eventId: string; userId: string }> };

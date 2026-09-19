@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 export async function resetDatabase() {
   await prisma.galleryPhoto.deleteMany();

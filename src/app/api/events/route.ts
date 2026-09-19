@@ -13,7 +13,7 @@ import {
 } from "@/server/services/event.service";
 import { ZodError } from "zod";
 import { Errors } from "@/lib/api/errors";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 export async function GET(request: Request) {
   try {

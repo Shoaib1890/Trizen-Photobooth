@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/response";
 import { assignMemberSchema } from "@/lib/validation/schemas";
 import { assignTeamMember } from "@/server/services/event.service";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 import { Errors } from "@/lib/api/errors";
 import { ZodError } from "zod";
 

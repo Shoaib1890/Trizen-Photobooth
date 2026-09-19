@@ -22,6 +22,7 @@ interface EventDetail {
 interface UploadParams {
   timestamp: number;
   folder: string;
+  allowedFormats: string;
   signature: string;
   apiKey: string;
   cloudName: string;
@@ -65,6 +66,7 @@ export default function TeamEventPage() {
     formData.append("timestamp", String(uploadParams.timestamp));
     formData.append("signature", uploadParams.signature);
     formData.append("folder", uploadParams.folder);
+    formData.append("allowed_formats", uploadParams.allowedFormats);
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${uploadParams.cloudName}/image/upload`,
@@ -93,10 +95,6 @@ export default function TeamEventPage() {
     setSuccess("");
 
     try {
-      const { uploadParams } = await apiFetch<{ uploadParams: UploadParams }>(
-        `/api/events/${params.eventId}/photos?action=upload-signature`,
-      );
-
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         setProgress(`Uploading ${i + 1} of ${files.length}: ${file.name}`);
@@ -108,6 +106,9 @@ export default function TeamEventPage() {
           throw new Error(`${file.name} exceeds the 10MB limit.`);
         }
 
+        const { uploadParams } = await apiFetch<{ uploadParams: UploadParams }>(
+          `/api/events/${params.eventId}/photos?action=upload-signature`,
+        );
         const uploaded = await uploadToCloudinary(file, uploadParams);
         await apiFetch(`/api/events/${params.eventId}/photos`, {
           method: "POST",

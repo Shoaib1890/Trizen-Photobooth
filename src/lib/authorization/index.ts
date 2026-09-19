@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { Errors } from "@/lib/api/errors";
 import type { SessionPayload } from "@/lib/auth/session";
-import type { Role } from "@/generated/prisma";
+import type { Role } from "@/generated/prisma/client";
 
 export async function requireAuth(
   session: SessionPayload | null,

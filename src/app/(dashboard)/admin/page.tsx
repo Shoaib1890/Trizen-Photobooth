@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { getSessionFromCookies } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { getAdminDashboardStats } from "@/server/services/event.service";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 export default async function AdminDashboardPage() {
   const session = await getSessionFromCookies();

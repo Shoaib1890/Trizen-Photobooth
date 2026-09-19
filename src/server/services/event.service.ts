@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { Errors } from "@/lib/api/errors";
 import { getEnv } from "@/lib/env";
 import type { EventSummary } from "@/types";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 function galleryStatus(gallery: { published: boolean } | null): EventSummary["galleryStatus"] {
   if (!gallery) return "none";
@@ -14,6 +14,7 @@ async function buildEventSummary(event: {
   name: string;
   createdAt: Date;
   updatedAt: Date;
+  _count: { photos: number };
   photos: { selected: boolean }[];
   gallery: { published: boolean } | null;
 }): Promise<EventSummary> {
@@ -22,7 +23,7 @@ async function buildEventSummary(event: {
     name: event.name,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
-    photoCount: event.photos.length,
+    photoCount: event._count.photos,
     selectedCount: event.photos.filter((p) => p.selected).length,
     galleryStatus: galleryStatus(event.gallery),
   };
@@ -33,8 +34,9 @@ export async function listEventsForUser(userId: string, role: Role): Promise<Eve
     const events = await prisma.event.findMany({
       where: { adminId: userId },
       include: {
-        photos: { select: { selected: true } },
+        photos: { where: { selected: true }, select: { selected: true } },
         gallery: { select: { published: true } },
+        _count: { select: { photos: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -46,8 +48,9 @@ export async function listEventsForUser(userId: string, role: Role): Promise<Eve
     include: {
       event: {
         include: {
-          photos: { select: { selected: true } },
+          photos: { where: { selected: true }, select: { selected: true } },
           gallery: { select: { published: true } },
+          _count: { select: { photos: true } },
         },
       },
     },
@@ -169,14 +172,17 @@ export async function removeTeamMember(
 export async function getAdminDashboardStats(adminId: string) {
   const events = await prisma.event.findMany({
     where: { adminId },
-    include: {
-      photos: true,
-      gallery: true,
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      gallery: { select: { published: true } },
+      _count: { select: { photos: true } },
     },
   });
 
   const totalEvents = events.length;
-  const totalPhotos = events.reduce((sum, e) => sum + e.photos.length, 0);
+  const totalPhotos = events.reduce((sum, e) => sum + e._count.photos, 0);
   const publishedGalleries = events.filter((e) => e.gallery?.published).length;
 
   const recentEvents = events
@@ -186,7 +192,7 @@ export async function getAdminDashboardStats(adminId: string) {
       id: e.id,
       name: e.name,
       createdAt: e.createdAt.toISOString(),
-      photoCount: e.photos.length,
+      photoCount: e._count.photos,
       galleryStatus: galleryStatus(e.gallery),
     }));
 

@@ -17,7 +17,7 @@ import {
   cleanupFailedUpload,
 } from "@/server/services/photo.service";
 import { createSignedUploadParams } from "@/lib/cloudinary";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 import { Errors } from "@/lib/api/errors";
 import { ZodError } from "zod";
 
@@ -32,7 +32,6 @@ export async function GET(request: Request, { params }: Params) {
     const url = new URL(request.url);
     if (url.searchParams.get("action") === "upload-signature") {
       if (session.role !== Role.TEAM_MEMBER) throw Errors.forbidden();
-      await requireTeamMemberAssignment(eventId, session.userId);
       const uploadParams = createSignedUploadParams(eventId);
       return successResponse({ uploadParams });
     }

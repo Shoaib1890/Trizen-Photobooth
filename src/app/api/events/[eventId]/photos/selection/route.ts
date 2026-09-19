@@ -2,7 +2,7 @@ import { getSessionFromRequest } from "@/lib/auth/session";
 import { requireAuth } from "@/lib/authorization";
 import { handleApiError, successResponse } from "@/lib/api/response";
 import { bulkUpdateSelection } from "@/server/services/photo.service";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 import { Errors } from "@/lib/api/errors";
 import { z } from "zod";
 

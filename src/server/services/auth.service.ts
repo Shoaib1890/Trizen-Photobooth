@@ -7,7 +7,7 @@ import {
   clearSessionCookie,
 } from "@/lib/auth/session";
 import type { SafeUser } from "@/types";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 function toSafeUser(user: {
   id: string;
@@ -43,7 +43,11 @@ export async function registerAdmin(input: {
     },
   });
 
-  const token = await createSessionToken({ userId: user.id, role: user.role });
+  const token = await createSessionToken({
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+  });
   await setSessionCookie(token);
   return toSafeUser(user);
 }
@@ -62,7 +66,11 @@ export async function loginUser(input: {
     throw Errors.unauthorized("Invalid email or password.");
   }
 
-  const token = await createSessionToken({ userId: user.id, role: user.role });
+  const token = await createSessionToken({
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+  });
   await setSessionCookie(token);
   return toSafeUser(user);
 }

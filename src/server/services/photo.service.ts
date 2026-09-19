@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { Errors } from "@/lib/api/errors";
 import { deleteCloudinaryAsset, thumbnailUrl } from "@/lib/cloudinary";
 import type { PhotoDto } from "@/types";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 function toPhotoDto(photo: {
   id: string;

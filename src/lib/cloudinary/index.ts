@@ -29,10 +29,11 @@ export function createSignedUploadParams(eventId: string) {
   const timestamp = Math.round(Date.now() / 1000);
   const folder = getUploadFolder(eventId);
 
+  const allowedFormats = "jpg,jpeg,png,webp";
   const params = {
     timestamp,
     folder,
-    allowed_formats: "jpg,jpeg,png,webp",
+    allowed_formats: allowedFormats,
   };
 
   const signature = cloudinary.utils.api_sign_request(
@@ -43,6 +44,7 @@ export function createSignedUploadParams(eventId: string) {
   return {
     timestamp,
     folder,
+    allowedFormats,
     signature,
     apiKey: getEnv().CLOUDINARY_API_KEY,
     cloudName: getEnv().CLOUDINARY_CLOUD_NAME,

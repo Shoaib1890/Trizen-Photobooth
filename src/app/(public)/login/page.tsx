@@ -32,13 +32,12 @@ function LoginForm() {
 
       const next = searchParams.get("next");
       if (next) {
-        router.push(next);
+        router.replace(next);
       } else if (data.user.role === "ADMIN") {
-        router.push("/admin");
+        router.replace("/admin");
       } else {
-        router.push("/team");
+        router.replace("/team");
       }
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {

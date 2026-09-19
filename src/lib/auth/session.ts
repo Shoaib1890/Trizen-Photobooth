@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { getEnv, isProduction } from "@/lib/env";
-import type { Role } from "@/generated/prisma";
+import type { Role } from "@/generated/prisma/client";
 
 const AUTH_COOKIE = "trizen_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
@@ -9,6 +9,7 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 export interface SessionPayload {
   userId: string;
   role: Role;
+  name?: string;
 }
 
 function getSecretKey() {
@@ -16,7 +17,11 @@ function getSecretKey() {
 }
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ userId: payload.userId, role: payload.role })
+  return new SignJWT({
+    userId: payload.userId,
+    role: payload.role,
+    name: payload.name ?? "",
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE}s`)
@@ -34,7 +39,11 @@ export async function verifySessionToken(
     ) {
       return null;
     }
-    return { userId: payload.userId, role: payload.role };
+    return {
+      userId: payload.userId,
+      role: payload.role,
+      name: typeof payload.name === "string" ? payload.name : undefined,
+    };
   } catch {
     return null;
   }

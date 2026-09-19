@@ -13,10 +13,15 @@ function createPrismaClient() {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  const pool = globalForPrisma.pool ?? new Pool({ connectionString });
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.pool = pool;
-  }
+  const pool =
+    globalForPrisma.pool ??
+    new Pool({
+      connectionString,
+      max: process.env.NODE_ENV === "production" ? 3 : 8,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+    });
+  globalForPrisma.pool = pool;
 
   const adapter = new PrismaPg(pool);
   return new PrismaClient({

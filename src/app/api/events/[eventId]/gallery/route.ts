@@ -11,7 +11,7 @@ import {
   createOrUpdateGallery,
   getGalleryForAdmin,
 } from "@/server/services/gallery.service";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 import { Errors } from "@/lib/api/errors";
 import { ZodError } from "zod";
 

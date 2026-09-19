@@ -3,7 +3,7 @@ import {
   createGalleryAccessToken,
   GALLERY_COOKIE,
 } from "@/lib/gallery/session";
-import type { Role } from "@/generated/prisma";
+import type { Role } from "@/generated/prisma/client";
 
 export async function authCookie(userId: string, role: Role) {
   const token = await createSessionToken({ userId, role });

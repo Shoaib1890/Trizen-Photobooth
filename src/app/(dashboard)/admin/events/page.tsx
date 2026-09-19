@@ -8,7 +8,7 @@ import { getSessionFromCookies } from "@/lib/auth/session";
 import { listEventsForUser } from "@/server/services/event.service";
 import { formatDate } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { Role } from "@/generated/prisma";
+import { Role } from "@/generated/prisma/client";
 
 export default async function AdminEventsPage() {
   const session = await getSessionFromCookies();
