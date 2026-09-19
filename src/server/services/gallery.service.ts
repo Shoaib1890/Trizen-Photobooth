@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { Errors } from "@/lib/api/errors";
 import { hashPin, verifyPin } from "@/lib/auth/password";
-import { getEnv } from "@/lib/env";
+import { getPublicAppUrl } from "@/lib/env";
 import { createGallerySlug } from "@/lib/gallery/slug";
 import {
   createGalleryAccessToken,
@@ -37,7 +37,7 @@ function toGalleryDto(
     createdAt: gallery.createdAt.toISOString(),
     updatedAt: gallery.updatedAt.toISOString(),
     selectedPhotoCount,
-    shareUrl: `${getEnv().NEXT_PUBLIC_APP_URL}/gallery/${gallery.slug}`,
+    shareUrl: `${getPublicAppUrl()}/gallery/${gallery.slug}`,
   };
 }
 

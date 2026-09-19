@@ -83,9 +83,18 @@ export default function AdminGalleryPage() {
   }
 
   async function copyUrl() {
-    if (!gallery?.shareUrl) return;
-    await navigator.clipboard.writeText(gallery.shareUrl);
+    const url = publicGalleryUrl();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
     setSuccess("Gallery URL copied to clipboard.");
+  }
+
+  function publicGalleryUrl() {
+    if (!gallery) return "";
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/gallery/${gallery.slug}`;
+    }
+    return gallery.shareUrl;
   }
 
   if (loading) return <PageLoader message="Loading gallery..." />;
@@ -154,14 +163,14 @@ export default function AdminGalleryPage() {
             {gallery.published ? (
               <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <p className="text-sm font-medium text-slate-700">Shareable URL</p>
-                <p className="break-all text-sm text-slate-600">{gallery.shareUrl}</p>
+                <p className="break-all text-sm text-slate-600">{publicGalleryUrl()}</p>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={copyUrl}>
                     <Copy className="h-4 w-4" />
                     Copy URL
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <a href={gallery.shareUrl} target="_blank" rel="noreferrer">
+                    <a href={publicGalleryUrl()} target="_blank" rel="noreferrer">
                       <ExternalLink className="h-4 w-4" />
                       Open gallery
                     </a>

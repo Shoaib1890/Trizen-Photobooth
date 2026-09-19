@@ -35,3 +35,16 @@ export function getEnv(): Env {
 export function isProduction(): boolean {
   return getEnv().NODE_ENV === "production";
 }
+
+/** Base URL for share links (gallery, etc.). Prefer Vercel's production domain when deployed. */
+export function getPublicAppUrl(): string {
+  const configured = getEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const vercelProduction = process.env.VERCEL_PROJECT_PRODUCTION_URL?.replace(
+    /^https?:\/\//,
+    "",
+  ).replace(/\/$/, "");
+  if (vercelProduction) {
+    return `https://${vercelProduction}`;
+  }
+  return configured;
+}

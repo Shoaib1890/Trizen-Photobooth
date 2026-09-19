@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { Errors } from "@/lib/api/errors";
-import { getEnv } from "@/lib/env";
+import { getPublicAppUrl } from "@/lib/env";
 import type { EventSummary } from "@/types";
 import { Role } from "@/generated/prisma/client";
 
@@ -108,7 +108,7 @@ export async function getEventDetail(eventId: string, userId: string, role: Role
           slug: event.gallery.slug,
           published: event.gallery.published,
           publishedAt: event.gallery.publishedAt?.toISOString() ?? null,
-          shareUrl: `${getEnv().NEXT_PUBLIC_APP_URL}/gallery/${event.gallery.slug}`,
+          shareUrl: `${getPublicAppUrl()}/gallery/${event.gallery.slug}`,
         }
       : null,
   };
