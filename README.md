@@ -1,260 +1,173 @@
-# Trizen Gallery — Photo Sharing Platform
+# Trizen Gallery
 
-Production-ready full-stack photo sharing platform for photography and event teams. Admins create events, assign team members, review uploads, publish PIN-protected client galleries, and share unique URLs with customers.
+Full-stack photo sharing platform for event and photography teams. Admins orchestrate events and curated client galleries; team members upload on assignment; customers access published galleries via a shareable link and PIN—no account required.
 
-## Live demo
+**Live application:** [photobooth-kappa-inky.vercel.app](https://photobooth-kappa-inky.vercel.app)
 
-Deploy this project to Vercel + Neon + Cloudinary to obtain a production URL. After seeding, use the credentials below.
+---
 
-## Demo credentials
+## Demo access
 
 | Role | Email | Password |
-|------|-------|----------|
+|------|--------|----------|
 | Admin | `admin@trizen.demo` | `Admin123!` |
-| Team Member | `member@trizen.demo` | `Member123!` |
+| Team member | `member@trizen.demo` | `Member123!` |
 
-After running `npm run db:seed`, the seed script prints:
+**Customer gallery (published demo event)**
 
-- Demo gallery URL: `/gallery/{slug}`
-- Demo gallery PIN: value of `DEMO_GALLERY_PIN` (default `482917`)
+| | |
+|--|--|
+| URL | [Open gallery](https://photobooth-kappa-inky.vercel.app/gallery/WSVoIv6reAY2) |
+| PIN | `482917` |
 
-## Features
+Reviewers can follow the end-to-end flow: admin login → events and photo selection → gallery publish; team member login → upload to assigned event; incognito window → gallery URL + PIN.
 
-- Admin registration, login, logout
-- Event creation and team member assignment by email
-- Team member multi-photo upload to Cloudinary
-- Admin photo review with select/unselect
-- One gallery per event with 6-digit PIN (bcrypt hashed)
-- Publish gallery with cryptographically random slug
-- Public PIN-protected customer gallery with lightbox
-- Server-side RBAC and gallery access sessions
-- Vitest coverage for auth, authorization, photos, and galleries
+---
 
-## User roles
+## Capabilities
 
-- **Admin** — owns events, assigns team members, selects photos, publishes galleries
-- **Team Member** — uploads to assigned events, views own uploads only
-- **Customer** — no account; opens share URL, enters PIN, views published photos
+- Admin registration, authentication, and session management
+- Event lifecycle: create event, assign existing team members by email, review all uploads
+- Photo curation: select/unselect images for client delivery
+- Gallery publishing: unique slug, bcrypt-hashed 6-digit PIN, shareable URL
+- Team uploads: signed direct-to-Cloudinary uploads with metadata persisted in PostgreSQL
+- Customer experience: PIN gate, scoped gallery session, responsive grid and lightbox
+- Role-based access control enforced on every protected API route
+
+### Roles
+
+| Role | Capabilities |
+|------|----------------|
+| **Admin** | Events, assignments, full photo review, gallery PIN, publish |
+| **Team member** | Assigned events only; upload and view own photos |
+| **Customer** | Link + PIN; view published gallery only |
+
+---
 
 ## Technology stack
 
-- **Frontend/Backend:** Next.js 16 (App Router), React, TypeScript, Tailwind CSS
-- **UI:** Custom components inspired by shadcn/ui patterns
-- **Database:** PostgreSQL + Prisma ORM
-- **Validation:** Zod
-- **Auth:** Custom bcrypt credentials + HTTP-only JWT session cookies (jose)
-- **Object storage:** Cloudinary
-- **Testing:** Vitest
-- **Deployment:** Vercel + managed PostgreSQL (Neon recommended) + Cloudinary
+| Layer | Choice |
+|-------|--------|
+| Application | Next.js 16 (App Router), React, TypeScript, Tailwind CSS |
+| API & validation | Route handlers, Zod |
+| Database | PostgreSQL, Prisma ORM |
+| Authentication | bcrypt passwords, JWT in HTTP-only cookies (jose) |
+| Media | Cloudinary (images not stored in the database) |
+| Hosting | Vercel, Neon (PostgreSQL) |
+| Tests | Vitest (integration tests against PostgreSQL) |
 
-## Architecture overview
+---
+
+## System architecture
 
 ```mermaid
-flowchart TD
-    Browser --> NextJS[Next.js App Router]
-    NextJS --> PostgreSQL[(PostgreSQL)]
-    NextJS --> Cloudinary[Cloudinary]
-    Browser --> Cloudinary
-    NextJS --> AuthSession[HTTP-only Auth Cookie]
-    NextJS --> GallerySession[HTTP-only Gallery Cookie]
+flowchart LR
+  subgraph clients [Clients]
+    Admin[Admin / Team browser]
+    Customer[Customer browser]
+  end
+
+  subgraph app [Next.js on Vercel]
+    UI[App Router UI]
+    API[REST API routes]
+    Auth[Auth & RBAC]
+  end
+
+  subgraph data [External services]
+    DB[(PostgreSQL)]
+    CDN[Cloudinary]
+  end
+
+  Admin --> UI
+  Customer --> UI
+  UI --> API
+  API --> Auth
+  API --> DB
+  Admin -->|signed upload| CDN
+  API -->|metadata| DB
 ```
 
-### Request flow
+**Auth flow:** Staff sessions use a signed `trizen_session` cookie (HttpOnly, Secure in production).
 
-1. **Auth session** — signed JWT in `trizen_session` cookie (7 days, HttpOnly, Secure in production)
-2. **Photo upload** — team member requests signed Cloudinary params → direct upload → metadata POST to API
-3. **Gallery session** — customer verifies PIN → signed JWT in `trizen_gallery_access` cookie (2 hours, scoped to one gallery)
-4. **Authorization** — every protected API checks authentication, role, and resource ownership/assignment
+**Upload flow:** Team member requests signed upload parameters → browser uploads to Cloudinary → API stores photo metadata linked to event and uploader.
 
-## Database design
+**Gallery flow:** Customer submits PIN → server verifies bcrypt hash → short-lived gallery-scoped cookie → photo list served only for published `GalleryPhoto` records.
 
-| Model | Purpose |
-|-------|---------|
-| `User` | Admin and team member accounts (`role` enum) |
-| `Event` | Event owned by an admin |
-| `EventMember` | Team member assignment (`eventId`, `userId` unique) |
-| `Photo` | Metadata only; files live in Cloudinary |
-| `Gallery` | One per event; unique `slug`, bcrypt `pinHash`, publish state |
-| `GalleryPhoto` | Join table for published gallery photos only |
+---
 
-Images are never stored in PostgreSQL. Passwords and gallery PINs are bcrypt hashed.
+## Data model
 
-## Project structure
+| Entity | Description |
+|--------|-------------|
+| `User` | Accounts with `ADMIN` or `TEAM_MEMBER` role |
+| `Event` | Owned by an admin; hub for members, photos, and gallery |
+| `EventMember` | Many-to-many assignment of team members to events |
+| `Photo` | File metadata (URL, size, mime, uploader, selection flag); binary assets on Cloudinary |
+| `Gallery` | One per event; public `slug`, hashed PIN, publish state |
+| `GalleryPhoto` | Snapshot of selected photos exposed to customers after publish |
+
+Passwords and gallery PINs are never stored in plain text.
+
+---
+
+## Repository layout
 
 ```
-src/
-  app/               # App Router pages + API routes
-  components/        # UI and layout components
-  lib/               # Auth, authorization, Cloudinary, validation, API helpers
-  server/services/   # Business logic
-  types/             # Shared DTO types
-prisma/              # Schema, migrations, seed
-tests/               # Vitest integration tests
+src/app/          Pages and API routes (App Router)
+src/components/   UI and layout
+src/lib/          Auth, authorization, Cloudinary, validation
+src/server/       Domain services
+prisma/           Schema and seed data
+tests/            Vitest integration tests
 ```
 
-## Local setup
+---
 
-### Prerequisites
+## Running locally
 
-- Node.js 20+
-- Docker (recommended) or a PostgreSQL instance
-- Cloudinary account
+**Prerequisites:** Node.js 20+, PostgreSQL, Cloudinary account.
 
-### 1. Install dependencies
+1. `npm install`
+2. Copy `.env.example` to `.env` and set `DATABASE_URL`, `AUTH_SECRET`, and Cloudinary credentials (see `.env.example` for the full list).
+3. Apply schema and seed demo data:
 
-```bash
-npm install
-```
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
 
-### 2. Start PostgreSQL
+4. `npm run dev` → [http://localhost:3000](http://localhost:3000)
 
-**Option A — Prisma Dev (recommended, no Docker required):**
+Docker Compose is included for a local PostgreSQL instance if preferred.
 
-```bash
-npx prisma dev -d --name trizen
-npx prisma dev ls
-```
-
-Copy the `TCP` connection URL from the output into `.env` as `DATABASE_URL` and `DIRECT_URL`.
-
-**Option B — Docker:**
-
-```bash
-docker compose up -d
-```
-
-Use `postgresql://trizen:trizen@localhost:5432/trizen` in `.env`.
-
-### 3. Configure environment
-
-Copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Example local values:
-
-```env
-DATABASE_URL=postgresql://trizen:trizen@localhost:5432/trizen
-DIRECT_URL=postgresql://trizen:trizen@localhost:5432/trizen
-AUTH_SECRET=replace-with-a-long-random-secret-at-least-32-chars
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-DEMO_GALLERY_PIN=482917
-```
-
-Never commit `.env`.
-
-### 4. Migrate and seed
-
-```bash
-npm run db:push
-npm run db:seed
-```
-
-### 5. Run the app
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-## Environment variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `DIRECT_URL` | Optional | Direct connection for migrations (Neon) |
-| `AUTH_SECRET` | Yes | Secret for signing auth/gallery JWT cookies (32+ chars) |
-| `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret |
-| `NEXT_PUBLIC_APP_URL` | Yes | Public app URL for share links |
-| `DEMO_GALLERY_PIN` | Optional | PIN used by seed script |
+---
 
 ## Testing
-
-Tests use the same PostgreSQL database configured in `DATABASE_URL`. Use a separate test database in CI if preferred.
 
 ```bash
 npm test
 ```
 
-Coverage includes:
+Integration tests cover authentication, authorization boundaries, photo access rules, gallery publishing, PIN verification, and cross-gallery session isolation. Use a dedicated database for tests (see `tests/helpers/db.ts`); do not point tests at a production database.
 
-- Admin registration/login/logout
-- Role-based authorization boundaries
-- Photo upload metadata and access filtering
-- Gallery publish rules
-- PIN verification and cross-gallery session isolation
+---
 
-## Deployment (Vercel + Neon + Cloudinary)
+## Security highlights
 
-1. Push the repository to GitHub.
-2. Create a Neon PostgreSQL database and copy `DATABASE_URL` / `DIRECT_URL`.
-3. Create a Cloudinary account and copy credentials.
-4. Import the project in Vercel.
-5. Set all environment variables from `.env.example`.
-6. Deploy and run migrations:
+- Server-side RBAC and resource ownership checks (events, photos, galleries)
+- Separate customer gallery session, isolated per slug
+- Unpublished galleries are not exposed publicly; invalid PIN does not leak photo URLs
+- PIN attempt rate limiting (in-memory; suitable for demo scale)
+- Input validation on API boundaries
 
-   ```bash
-   npx prisma migrate deploy
-   npm run db:seed
-   ```
+---
 
-7. Verify HTTPS cookies, uploads, gallery PIN flow, and role restrictions in production.
+## Design notes
 
-## API overview
+Team members must already exist in the system before assignment by email (demo accounts are provided via seed). This keeps the submission focused on core workflow—events, uploads, curation, and PIN-protected delivery—while leaving invite-based onboarding as a natural extension.
 
-| Method | Route | Access |
-|--------|-------|--------|
-| POST | `/api/auth/register` | Public (admin only) |
-| POST | `/api/auth/login` | Public |
-| POST | `/api/auth/logout` | Authenticated |
-| GET | `/api/auth/me` | Authenticated |
-| GET/POST | `/api/events` | Authenticated |
-| GET | `/api/events/:eventId` | Admin owner or assigned member |
-| POST/DELETE | `/api/events/:eventId/members` | Admin owner |
-| GET/POST | `/api/events/:eventId/photos` | Assigned member upload / role-filtered list |
-| PATCH | `/api/photos/:photoId/selection` | Admin owner |
-| GET/POST/PATCH | `/api/events/:eventId/gallery` | Admin owner |
-| POST | `/api/events/:eventId/gallery/publish` | Admin owner |
-| GET | `/api/gallery/:slug` | Public (published only) |
-| POST | `/api/gallery/:slug/verify` | Public |
-| GET | `/api/gallery/:slug/photos` | Gallery session required |
+---
 
-## Security considerations
+## License
 
-- Server-side RBAC on every protected route
-- IDOR checks for events, photos, and galleries
-- Gallery PINs and passwords hashed with bcrypt
-- Separate gallery access cookie scoped to one gallery
-- Unpublished galleries return generic 404
-- Wrong PIN returns 401 with no photo URLs
-- Basic PIN rate limiting per IP + slug
-- Production cookies: HttpOnly, Secure, SameSite=Lax
-
-## Known limitations
-
-- Team member accounts are seeded or provisioned manually (no public team registration or email invitations)
-- PIN rate limiting is in-memory (resets on server restart; use Redis in larger deployments)
-- No photo deletion UI (optional per PRD)
-- Demo seed uses Cloudinary demo URLs for sample photos unless real uploads are added
-- Pagination is not implemented for very large galleries
-
-## Future improvements
-
-- Email invitations for team members
-- Redis-backed rate limiting and session store
-- Photo deletion with Cloudinary cleanup
-- Pagination/infinite scroll for large galleries
-- CI pipeline with GitHub Actions
-- Admin-created team member accounts from dashboard
-
-## Security note for submission
-
-Do not commit secrets. Provide demo credentials and gallery PIN separately to reviewers as required by the internship brief.
+Submitted as part of the TrizenAI engineering assessment. All secrets belong in environment configuration only; none are committed to this repository.
